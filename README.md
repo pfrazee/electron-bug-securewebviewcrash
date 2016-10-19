@@ -1,4 +1,4 @@
-# electron-bug-notifications
+# electron-bug-securewebviewcrash
 
 ## To Reproduce
 
@@ -6,32 +6,37 @@ Install and start the app:
 
 ```bash
 # Clone this repository
-git clone https://github.com/pfrazee/electron-bug-notifications.git
+git clone https://github.com/pfrazee/electron-bug-securewebviewcrash.git
 # Go into the repository
-cd electron-bug-notifications
+cd electron-bug-securewebviewcrash
 # Install dependencies and run the app
 npm install && npm start
 ```
 
-Scroll the webview down to the "Notify Me" button, and click it.
-
-You will wait 5 seconds, and then the app will crash.
+Click the "Open Devtools" button, then click the "Application" tab of devtools.
+The webview will crash.
 
 ## The Bug
 
-This is the code that causes the issue:
+The webview opens a custom protocol, which is registered as follows:
 
 ```js
+protocol.registerStandardSchemes(['custom'])
 app.on('ready', () => {
-  session.defaultSession.setPermissionRequestHandler(onPermissionRequestHandler)
+  protocol.registerHttpProtocol('custom', (req, cb) => {
+    cb({ method: 'GET', url: 'http://localhost:12345' })
+  }, () => console.log('Registered "custom" protocol'))
 })
-
-function onPermissionRequestHandler (webContents, permission, cb) {
-  console.log('waiting 5 seconds', permission)
-  setTimeout(() => { console.log('allowing', permission); cb(true) }, 5e3)
-}
+http.createServer((req, res) => res.end('Hello, world. This is the webview')).listen(12345)
 ```
 
-It appears the crash is caused by the permission handler being given a response after time has passed.
+The webview has a preload script which registers it as a secure protocol:
 
-I've only experienced the bug with the `notifications` permission.
+```js
+var { webFrame } = require('electron')
+webFrame.registerURLSchemeAsPrivileged('custom')
+```
+
+For some reason, this combination causes devtools to crash the webview when the Application tab is opened.
+I used the more fine-grained controls in https://github.com/electron/electron/pull/7665 to isolate this specifically to the "secure" flag.
+
