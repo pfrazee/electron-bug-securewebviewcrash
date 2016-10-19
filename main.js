@@ -1,9 +1,11 @@
+const http = require('http')
 const electron = require('electron')
 // Module to control application life.
 const app = electron.app
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow
 const session = electron.session
+const protocol = electron.protocol
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -50,12 +52,11 @@ app.on('activate', function () {
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
 
+// BUG TEST:
+protocol.registerStandardSchemes(['custom'])
 app.on('ready', () => {
-  session.defaultSession.setPermissionRequestHandler(onPermissionRequestHandler)
+  protocol.registerHttpProtocol('custom', (req, cb) => {
+    cb({ method: 'GET', url: 'http://localhost:12345' })
+  }, () => console.log('Registered "custom" protocol'))
 })
-
-function onPermissionRequestHandler (webContents, permission, cb) {
-  console.log('waiting 5 seconds', permission)
-  setTimeout(() => { console.log('allowing', permission); cb(true) }, 5e3)
-}
-
+http.createServer((req, res) => res.end('Hello, world. This is the webview')).listen(12345)

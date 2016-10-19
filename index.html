@@ -16,6 +16,7 @@
     Chromium <script>document.write(process.versions.chrome)</script>,
     and Electron <script>document.write(process.versions.electron)</script>.
 
-    <webview src="https://developer.mozilla.org/en-US/docs/Web/API/Notifications_API/Using_the_Notifications_API"></webview>
+    <button onclick="theWebview.openDevTools()">Open Devtools</button>
+    <webview id="theWebview" src="custom://webview.html" preload="./webview-preload.js"></webview>
   </body>
 </html>
